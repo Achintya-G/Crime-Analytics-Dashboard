@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: crime-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: crime_admin
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: crimedb
+    ports:
+      - "5433:5432"
+    volumes:
+      - crime_pgdata:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d   # auto-runs .sql files on first boot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crime_admin -d crimedb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: crime-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: devpass
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - tools   # only starts if you run: docker compose --profile tools up
+
+volumes:
+  crime_pgdata:
